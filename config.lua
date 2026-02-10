@@ -1,5 +1,34 @@
 Config = {}
 
+-- ===== NEW: Admin Restriction Settings =====
+Config.adminOnly = true -- Set to true to restrict to admins only
+
+-- Choose your framework: 'esx', 'qbcore', 'ace', or 'custom'
+Config.framework = 'ace' -- Default uses Ace Permissions
+
+-- For ACE Permissions (default)
+Config.acePermission = 'admin' -- Permission name (e.g., 'admin', 'moderator')
+
+-- For Custom function
+Config.isAdmin = function(source)
+    -- Example: Check if player is in admin list
+    local adminIdentifiers = {
+        'license:abc123',
+        'discord:123456789'
+    }
+    
+    for _, id in pairs(GetPlayerIdentifiers(source)) do
+        for _, adminId in pairs(adminIdentifiers) do
+            if id == adminId then
+                return true
+            end
+        end
+    end
+    return false
+end
+
+-- ===== END Admin Settings =====
+
 Config.keys = {
     confirm = {191, 'Enter'},
     cancel = {73, 'X'},
@@ -16,6 +45,7 @@ Config.keys = {
 Config.Translations = {
     ['title'] = 'Adjust animation',
     ['no_anim'] = 'Use animation first!',
+    ['no_permission'] = 'You do not have permission to use this command!', -- NEW
     keys = {
         ['X'] = 'Cancel',
         ['Enter'] = 'Confirm',
@@ -51,6 +81,7 @@ Config.returnToStart = true
 
 Config.walkToPosition = true
 
+-- Rest of your config...
 Config.getCurrentAnimation = function()
     if GetResourceState('scully_emotemenu') == 'started' then
         local data, lastVariant = exports.scully_emotemenu:getLastEmote()
@@ -69,12 +100,6 @@ Config.getCurrentAnimation = function()
             command = 'e ' .. data.Command
         }
     elseif GetResourceState('rpemotes') == 'started' then
-        --[[
-            =================================================================================================
-            Make sure you are using the modified version that is required for the script to function properly
-                                            https://docs.pixelprecision.dev
-            =================================================================================================
-        ]]
         local data = exports.rpemotes:getCurrentEmote()
         if not data then return end
         local MovementType = cache.vehicle and 51 or 0
