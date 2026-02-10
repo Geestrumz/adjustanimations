@@ -7,6 +7,11 @@ version '1.0.0'
 
 description 'Adjust Animation'
 
+server_scripts {
+    'config.lua',
+    'server.lua' -- NEW: Add server script
+}
+
 client_scripts {
     'config.lua',
     'client.lua'
