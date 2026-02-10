@@ -5,6 +5,16 @@ Citizen.CreateThread(function()
     })
 end)
 
+-- NEW: Client event to receive notification from server
+RegisterNetEvent('pp-adjustanim:notify', function(message)
+    Config.Notify(message)
+end)
+
+-- NEW: Client event to start adjustment (triggered from server after permission check)
+RegisterNetEvent('pp-adjustanim:startAdjust', function()
+    adjustAnim()
+end)
+
 function adjustAnim()
     local animdata = Config.getCurrentAnimation()
     if not animdata then
@@ -54,6 +64,22 @@ function adjustAnim()
                     keyPressed = true
                     FreezeEntityPosition(cache.ped, false)
                     local coords = GetEntityCoords(clonePed)
+                    
+                    -- ===== NEW: Auto-export coordinates to console =====
+                    print("^2╔════════════════════════════════════════════════════════╗^0")
+                    print("^2║       ADJUSTED ANIMATION COORDINATES EXPORTED         ║^0")
+                    print("^2╠════════════════════════════════════════════════════════╣^0")
+                    print(string.format("^3║ Position: ^0vector4(^6%.2f^0, ^6%.2f^0, ^6%.2f^0, ^6%.2f^0)^3 ║^0", 
+                        coords.x, coords.y, coords.z, currentHeading))
+                    print("^2╠════════════════════════════════════════════════════════╣^0")
+                    print(string.format("^3║ Animation: ^0%s^3                              ║^0", animdata.dict))
+                    print(string.format("^3║ Anim Name: ^0%s^3                              ║^0", animdata.anim))
+                    print(string.format("^3║ Flag: ^0%d^3                                           ║^0", animdata.flag))
+                    print("^2╚════════════════════════════════════════════════════════╝^0")
+                    print("^5Copy this line for your script:^0")
+                    print(string.format("vector4(%.2f, %.2f, %.2f, %.2f)", coords.x, coords.y, coords.z, currentHeading))
+                    -- ===== END Auto-export =====
+                    
                     SendNUIMessage({
                         action = 'close'
                     })
@@ -126,4 +152,5 @@ function adjustAnim()
     end)
 end
 
-RegisterCommand(Config.command, adjustAnim)
+-- Remove the old RegisterCommand since we're handling it server-side now
+-- RegisterCommand(Config.command, adjustAnim)
