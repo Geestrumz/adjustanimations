@@ -1,0 +1,15 @@
+# FiveM
+fxmanifest.lua.bak
+*.bak
+
+# OS Files
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
+*.code-workspace
+
+# Logs
+*.log
