@@ -2,7 +2,7 @@ Config = {}
 
 -- ===== Admin Restriction Settings =====
 Config.adminOnly = true
-Config.framework = 'ace'
+Config.framework = 'esx'
 Config.acePermission = 'admin'
 
 Config.isAdmin = function(source)
