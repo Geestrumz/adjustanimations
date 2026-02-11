@@ -144,13 +144,6 @@ Config.cloneAlpha = 204              -- Clone transparency (0-255)
 Config.returnToStart = true          -- Return to start position if cancelled
 Config.walkToPosition = true         -- Walk to adjusted position or teleport
 
--- Quick Actions
-Config.quickActions = {
-    enabled = true,                  -- Enable quick actions menu
-    key = 38,                        -- Key code (38 = E)
-    keyName = "E"
-}
-
 Config.duplicateOffset = {
     x = 1.0,                         -- Offset for duplicate action
     y = 0.0,
@@ -222,7 +215,7 @@ Common bone attachment points:
 Press **Y** during adjustment for instant transformations:
 
 - **🔄 Rotate 90° Right/Left** - Quick rotation presets
-- **🔄 Rotate 180°** - Turn around instantly  
+- **🔄 Rotate 180°** - Turn around instantly
 - **↔️ Mirror Position** - Flip position horizontally
 - **📋 Duplicate Position** - Copy position offset to the right
 - **📍 Reset to Start** - Return to original position
