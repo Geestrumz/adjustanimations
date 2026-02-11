@@ -653,14 +653,16 @@ function adjustAnim()
                 -- ENTER - CONFIRM
                 if IsControlJustReleased(0, Config.keys.confirm[1]) and not enterPressed then
                     print("[AdjustDebug] ENTER pressed - Confirming adjustment")
-                    local distance = #(GetEntityCoords(cache.ped) - GetEntityCoords(clonePed))
+                    local pedCoords = GetEntityCoords(cache.ped)
+                    local cloneCoords = GetEntityCoords(clonePed)
+                    local distance = #(pedCoords - cloneCoords)
                     print(string.format("[AdjustDebug] Distance check - Current: %.2f, Max: %.2f", distance, Config.maxDistance))
                     
                     if distance <= Config.maxDistance then
                         print("[AdjustDebug] Distance check passed - Proceeding with confirmation")
                         enterPressed = true
                         FreezeEntityPosition(cache.ped, false)
-                        local coords = GetEntityCoords(clonePed)
+                        local coords = cloneCoords
                         print(string.format("[AdjustDebug] Final clone position - X: %.2f, Y: %.2f, Z: %.2f, Heading: %.2f", 
                             coords.x, coords.y, coords.z, currentHeading))
                         
@@ -901,7 +903,6 @@ function adjustAnim()
         end
         print("[AdjustDebug] Main adjustment loop ended")
     end)
-    print("[AdjustDebug] adjustAnim() function completed")
 end
 
 -- ===== HELPER: 3D TEXT =====
