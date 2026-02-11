@@ -7,6 +7,11 @@ version '1.0.0'
 
 description 'Adjust Animation'
 
+-- Dependencies
+dependencies {
+    'ox_lib'
+}
+
 server_scripts {
     'config.lua',
     'server.lua' -- NEW: Add server script
