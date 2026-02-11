@@ -390,47 +390,82 @@ end
 
 -- ===== CLEANUP ALL PROPS =====
 function CleanupAllProps()
-    for _, prop in ipairs(placedProps) do
+    print(string.format("[AdjustDebug] CleanupAllProps() called - cleaning up %d props", #placedProps))
+    for i, prop in ipairs(placedProps) do
         if DoesEntityExist(prop.entity) then
+            print(string.format("[AdjustDebug] Cleaning up prop %d - Model: %s, Attached: %s", 
+                i, prop.model or "unknown", tostring(prop.attached or false)))
             if prop.attached then
                 DetachEntity(prop.entity, true, true)
             end
             DeleteEntity(prop.entity)
+        else
+            print(string.format("[AdjustDebug] Warning: Prop %d entity does not exist", i))
         end
     end
     placedProps = {}
+    print("[AdjustDebug] CleanupAllProps() completed - all props cleared")
 end
 
 -- ===== MAIN ADJUST FUNCTION =====
 function adjustAnim()
+    print("[AdjustDebug] adjustAnim() function started")
+    
     local animdata = Config.getCurrentAnimation()
+    print("[AdjustDebug] Config.getCurrentAnimation() returned:", animdata and "valid data" or "nil")
+    
     if not animdata then
+        print("[AdjustDebug] Error: No animation data available")
         Config.Notify(Config.Translations['no_anim'])
         return 
     end
     
-    CleanupAllProps()
+    print(string.format("[AdjustDebug] Animation data - dict: %s, anim: %s, flag: %s, command: %s", 
+        animdata.dict or "nil", animdata.anim or "nil", tostring(animdata.flag), animdata.command or "nil"))
     
+    print("[AdjustDebug] Calling CleanupAllProps()")
+    CleanupAllProps()
+    print("[AdjustDebug] CleanupAllProps() completed")
+    
+    print("[AdjustDebug] Creating clone ped")
     local clonePed = ClonePed(cache.ped, false, true, true)
+    if not DoesEntityExist(clonePed) then
+        print("[AdjustDebug] Error: Failed to create clone ped")
+        Config.Notify("Failed to create clone")
+        return
+    end
+    print("[AdjustDebug] Clone ped created successfully - Entity ID:", clonePed)
+    
     SetEntityAlpha(clonePed, Config.cloneAlpha)
     SetEntityNoCollisionEntity(cache.ped, clonePed, false)
     TaskPlayAnim(clonePed, animdata.dict, animdata.anim, 2.0, 2.0, -1, animdata.flag, 0, false, false, false)
     FreezeEntityPosition(cache.ped, true)
+    
     local currentHeading = GetEntityHeading(cache.ped)
     local startPos = GetEntityCoords(cache.ped)
-    Config.setupPed(clonePed)
+    print(string.format("[AdjustDebug] Player position - X: %.2f, Y: %.2f, Z: %.2f, Heading: %.2f", 
+        startPos.x, startPos.y, startPos.z, currentHeading))
     
+    Config.setupPed(clonePed)
+    print("[AdjustDebug] Clone ped setup completed")
+    
+    print("[AdjustDebug] Preparing NUI data")
     local nuiData = {}
     for _, key in pairs(Config.keys) do
         table.insert(nuiData, {key = key[2], text = Config.Translations.keys[key[2]]})
     end
+    print(string.format("[AdjustDebug] NUI data prepared - %d keys", #nuiData))
     
+    print("[AdjustDebug] Sending NUI message - action: 'open'")
     SendNUIMessage({
         action = 'open',
         data = nuiData
     })
+    print("[AdjustDebug] NUI message sent")
     
+    print("[AdjustDebug] Starting main adjustment thread")
     Citizen.CreateThread(function()
+        print("[AdjustDebug] Adjustment thread created - entering main loop")
         local enterPressed = false
         local xPressed = false
         local heightoffset = 0
@@ -617,10 +652,19 @@ function adjustAnim()
                 
                 -- ENTER - CONFIRM
                 if IsControlJustReleased(0, Config.keys.confirm[1]) and not enterPressed then
-                    if #(GetEntityCoords(cache.ped) - GetEntityCoords(clonePed)) <= Config.maxDistance then
+                    print("[AdjustDebug] ENTER pressed - Confirming adjustment")
+                    local pedCoords = GetEntityCoords(cache.ped)
+                    local cloneCoords = GetEntityCoords(clonePed)
+                    local distance = #(pedCoords - cloneCoords)
+                    print(string.format("[AdjustDebug] Distance check - Current: %.2f, Max: %.2f", distance, Config.maxDistance))
+                    
+                    if distance <= Config.maxDistance then
+                        print("[AdjustDebug] Distance check passed - Proceeding with confirmation")
                         enterPressed = true
                         FreezeEntityPosition(cache.ped, false)
-                        local coords = GetEntityCoords(clonePed)
+                        local coords = cloneCoords
+                        print(string.format("[AdjustDebug] Final clone position - X: %.2f, Y: %.2f, Z: %.2f, Heading: %.2f", 
+                            coords.x, coords.y, coords.z, currentHeading))
                         
                         -- AUTO-EXPORT COORDINATES
                         print("^2╔════════════════════════════════════��═══════════════════╗^0")
@@ -675,11 +719,14 @@ function adjustAnim()
                             end
                         end
                         
+                        print("[AdjustDebug] Sending NUI message - action: 'close'")
                         SendNUIMessage({
                             action = 'close'
                         })
+                        print("[AdjustDebug] NUI close message sent")
                         
                         if Config.walkToPosition then
+                            print("[AdjustDebug] Walking to position enabled - initiating walk")
                             ClearPedTasksImmediately(cache.ped)
                             Citizen.Wait(400)
                             TaskGoStraightToCoord(cache.ped, coords, 1.0, -1, currentHeading, 0.0)
@@ -689,34 +736,49 @@ function adjustAnim()
                             end
                         end
                         
+                        print("[AdjustDebug] Setting player to final position")
                         SetEntityCoordsNoOffset(cache.ped, coords.x, coords.y, coords.z)
                         SetEntityHeading(cache.ped, currentHeading)
+                        print("[AdjustDebug] Deleting clone ped")
                         DeletePed(clonePed)
+                        print("[AdjustDebug] Executing animation command:", animdata.command)
                         ExecuteCommand(animdata.command)
                         FreezeEntityPosition(cache.ped, true)
                         Citizen.Wait(0)
                         FreezeEntityPosition(cache.ped, false)
                         
+                        print(string.format("[AdjustDebug] Setting alpha for %d placed props", #placedProps))
                         for _, prop in ipairs(placedProps) do
                             if DoesEntityExist(prop.entity) then
                                 SetEntityAlpha(prop.entity, 255, false)
                             end
                         end
+                        print("[AdjustDebug] Adjustment confirmed successfully - function ending")
+                    else
+                        print("[AdjustDebug] Distance check failed - player too far from clone")
                     end
                 end
                 
                 -- X - CANCEL
                 if IsControlPressed(0, Config.keys.cancel[1]) then
+                    print("[AdjustDebug] X (CANCEL) pressed - Cancelling adjustment")
+                    print("[AdjustDebug] Deleting clone ped")
                     DeletePed(clonePed)
+                    print("[AdjustDebug] Calling CleanupAllProps()")
                     CleanupAllProps()
+                    print("[AdjustDebug] Sending NUI message - action: 'close'")
                     SendNUIMessage({
                         action = 'close'
                     })
+                    print("[AdjustDebug] NUI close message sent")
                     FreezeEntityPosition(cache.ped, false)
                     if Config.returnToStart then
+                        print(string.format("[AdjustDebug] Returning to start position - X: %.2f, Y: %.2f, Z: %.2f", 
+                            startPos.x, startPos.y, startPos.z))
                         SetEntityCoords(cache.ped, startPos.x, startPos.y, startPos.z)
                     end
                     xPressed = true
+                    print("[AdjustDebug] Adjustment cancelled - exiting main loop")
                     break
                 end
                 
@@ -727,46 +789,79 @@ function adjustAnim()
                 
                 -- G - PROP MENU (World placement)
                 if IsControlJustReleased(0, Config.keys.propMenu[1]) and Config.enableProps then
+                    print("[AdjustDebug] G (Prop Menu) pressed")
                     if #placedProps >= Config.maxPropsPerAdjust then
+                        print(string.format("[AdjustDebug] Max props reached - Current: %d, Max: %d", 
+                            #placedProps, Config.maxPropsPerAdjust))
                         Config.Notify(Config.Translations['max_props'])
                     else
+                        print("[AdjustDebug] Opening prop menu for world placement")
                         ShowPropMenu(false)
                     end
                 end
                 
                 -- U - BONE ATTACHMENT MENU
                 if IsControlJustReleased(0, Config.keys.boneMenu[1]) and Config.enableBoneAttachment then
+                    print("[AdjustDebug] U (Bone Attachment Menu) pressed")
                     if #placedProps >= Config.maxPropsPerAdjust then
+                        print(string.format("[AdjustDebug] Max props reached - Current: %d, Max: %d", 
+                            #placedProps, Config.maxPropsPerAdjust))
                         Config.Notify(Config.Translations['max_props'])
                     else
+                        print("[AdjustDebug] Opening prop menu for bone attachment")
                         ShowPropMenu(true) -- true = allow bone attachment
                     end
                 end
                 
                 -- BACKSPACE - REMOVE LAST PROP
                 if IsControlJustReleased(0, 177) then
+                    print("[AdjustDebug] Backspace pressed - Removing last prop")
                     RemoveLastProp()
                 end
                 
                 -- Place world prop if selected
                 if selectedPropIndex and not propAdjustMode and not boneAttachMode then
+                    print(string.format("[AdjustDebug] Placing world prop - Index: %d", selectedPropIndex))
                     local propData = Config.propLibrary[selectedPropIndex]
-                    local cloneCoords = GetEntityCoords(clonePed)
-                    currentProp = PlaceProp(propData.model, cloneCoords, currentHeading)
-                    if currentProp then
-                        Config.Notify(Config.Translations['prop_placed'])
-                        propAdjustMode = true
-                        propHeading = currentHeading
+                    if not propData then
+                        print("[AdjustDebug] Error: Invalid prop data at selected index")
+                    else
+                        print(string.format("[AdjustDebug] Prop data - Model: %s, Category: %s", 
+                            propData.model or "unknown", propData.category or "unknown"))
+                        local cloneCoords = GetEntityCoords(clonePed)
+                        print(string.format("[AdjustDebug] Clone coords for prop - X: %.2f, Y: %.2f, Z: %.2f", 
+                            cloneCoords.x, cloneCoords.y, cloneCoords.z))
+                        currentProp = PlaceProp(propData.model, cloneCoords, currentHeading)
+                        if currentProp then
+                            print("[AdjustDebug] Prop placed successfully - Entity ID:", currentProp)
+                            Config.Notify(Config.Translations['prop_placed'])
+                            propAdjustMode = true
+                            propHeading = currentHeading
+                        else
+                            print("[AdjustDebug] Error: Failed to place prop")
+                        end
                     end
                     selectedPropIndex = nil
                 end
                 
                 -- Attach bone prop if selected
                 if boneAttachMode and selectedBoneData then
-                    currentProp = AttachPropToBone(selectedBoneData.model, clonePed, selectedBoneData)
-                    if currentProp then
-                        Config.Notify(Config.Translations['bone_attached'])
-                        adjustingBoneProp = true
+                    print("[AdjustDebug] Attaching prop to bone")
+                    if not selectedBoneData.model then
+                        print("[AdjustDebug] Error: No model specified in selectedBoneData")
+                    elseif not selectedBoneData.bone then
+                        print("[AdjustDebug] Error: No bone specified in selectedBoneData")
+                    else
+                        print(string.format("[AdjustDebug] Bone data - Model: %s, Bone: %d", 
+                            selectedBoneData.model, selectedBoneData.bone))
+                        currentProp = AttachPropToBone(selectedBoneData.model, clonePed, selectedBoneData)
+                        if currentProp then
+                            print("[AdjustDebug] Prop attached to bone successfully - Entity ID:", currentProp)
+                            Config.Notify(Config.Translations['bone_attached'])
+                            adjustingBoneProp = true
+                        else
+                            print("[AdjustDebug] Error: Failed to attach prop to bone")
+                        end
                     end
                     boneAttachMode = false
                     selectedBoneData = nil
@@ -806,6 +901,7 @@ function adjustAnim()
                 end
             end
         end
+        print("[AdjustDebug] Main adjustment loop ended")
     end)
 end
 
