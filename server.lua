@@ -3,9 +3,25 @@ local ESX = nil
 local QBCore = nil
 
 if Config.framework == 'esx' then
-    ESX = exports['es_extended']:getSharedObject()
+    local success, result = pcall(function()
+        return exports['es_extended']:getSharedObject()
+    end)
+    if success then
+        ESX = result
+        print('[pp-adjustanim] ESX framework initialized successfully')
+    else
+        print('[pp-adjustanim] ERROR: Failed to initialize ESX framework. Please ensure es_extended is started before this resource.')
+    end
 elseif Config.framework == 'qbcore' then
-    QBCore = exports['qb-core']:GetCoreObject()
+    local success, result = pcall(function()
+        return exports['qb-core']:GetCoreObject()
+    end)
+    if success then
+        QBCore = result
+        print('[pp-adjustanim] QBCore framework initialized successfully')
+    else
+        print('[pp-adjustanim] ERROR: Failed to initialize QBCore framework. Please ensure qb-core is started before this resource.')
+    end
 end
 
 -- Admin check function
@@ -16,7 +32,6 @@ local function isPlayerAdmin(source)
 
     if Config.framework == 'esx' then
         if not ESX then
-            print('[pp-adjustanim] ERROR: ESX framework not found! Please ensure es_extended is started.')
             return false
         end
         local xPlayer = ESX.GetPlayerFromId(source)
@@ -26,7 +41,6 @@ local function isPlayerAdmin(source)
         
     elseif Config.framework == 'qbcore' then
         if not QBCore then
-            print('[pp-adjustanim] ERROR: QBCore framework not found! Please ensure qb-core is started.')
             return false
         end
         local Player = QBCore.Functions.GetPlayer(source)
