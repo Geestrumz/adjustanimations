@@ -1,3 +1,13 @@
+-- Initialize framework objects
+local ESX = nil
+local QBCore = nil
+
+if Config.framework == 'esx' then
+    ESX = exports['es_extended']:getSharedObject()
+elseif Config.framework == 'qbcore' then
+    QBCore = exports['qb-core']:GetCoreObject()
+end
+
 -- Admin check function
 local function isPlayerAdmin(source)
     if not Config.adminOnly then
@@ -5,12 +15,20 @@ local function isPlayerAdmin(source)
     end
 
     if Config.framework == 'esx' then
+        if not ESX then
+            print('[pp-adjustanim] ERROR: ESX framework not found! Please ensure es_extended is started.')
+            return false
+        end
         local xPlayer = ESX.GetPlayerFromId(source)
         if xPlayer then
             return xPlayer.getGroup() == 'admin' or xPlayer.getGroup() == 'superadmin'
         end
         
     elseif Config.framework == 'qbcore' then
+        if not QBCore then
+            print('[pp-adjustanim] ERROR: QBCore framework not found! Please ensure qb-core is started.')
+            return false
+        end
         local Player = QBCore.Functions.GetPlayer(source)
         if Player then
             local permission = QBCore.Functions.GetPermission(source)
